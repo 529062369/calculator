@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>客服批发总价计算器</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --text: #202936;
+      --muted: #667085;
+      --line: #d7dde7;
+      --primary: #176b87;
+      --primary-strong: #0f4f63;
+      --accent: #b54708;
+      --ok: #067647;
+      --shadow: 0 12px 28px rgba(16, 24, 40, 0.08);
+      font-family: "Microsoft YaHei", "PingFang SC", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .app {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 40px;
+    }
+
+    header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 42px);
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+
+    .hint {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      min-height: 42px;
+      padding: 0 16px;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+      white-space: nowrap;
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    .primary {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 8px 18px rgba(23, 107, 135, 0.22);
+    }
+
+    .primary:hover {
+      background: var(--primary-strong);
+    }
+
+    .secondary {
+      background: #e7eef3;
+      color: #123847;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .products {
+      overflow: hidden;
+    }
+
+    .product-header,
+    .product-row {
+      display: grid;
+      grid-template-columns: minmax(150px, 1fr) 110px 116px 92px 120px;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 16px;
+    }
+
+    .product-header {
+      background: #fbfcfe;
+      border-bottom: 1px solid var(--line);
+      color: #344054;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .product-row {
+      border-bottom: 1px solid var(--line);
+    }
+
+    .product-row:last-child {
+      border-bottom: 0;
+    }
+
+    .product-name {
+      display: block;
+      font-size: 16px;
+      font-weight: 900;
+      color: #253041;
+    }
+
+    .mobile-price {
+      display: none;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .unit-price,
+    .line-total {
+      font-weight: 800;
+    }
+
+    input {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid #cfd6e1;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      padding: 8px 10px;
+      font-size: 16px;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(23, 107, 135, 0.14);
+    }
+
+    .line-discount {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: fit-content;
+      min-width: 64px;
+      min-height: 30px;
+      border-radius: 999px;
+      padding: 0 10px;
+      background: #ecfdf3;
+      color: var(--ok);
+      font-weight: 900;
+      font-size: 14px;
+    }
+
+    .line-discount.none {
+      background: #f2f4f7;
+      color: var(--muted);
+    }
+
+    .summary {
+      position: sticky;
+      top: 16px;
+      padding: 18px;
+    }
+
+    .summary h2 {
+      margin: 0 0 14px;
+      font-size: 20px;
+      letter-spacing: 0;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .summary-row strong {
+      color: var(--text);
+    }
+
+    .grand {
+      margin: 16px 0 12px;
+      padding: 16px;
+      border-radius: 8px;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+    }
+
+    .grand span {
+      display: block;
+      color: var(--accent);
+      font-size: 15px;
+      font-weight: 900;
+    }
+
+    .grand strong {
+      display: block;
+      margin-top: 4px;
+      color: #7c2d12;
+      font-size: clamp(34px, 6vw, 48px);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .copy-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    .rules {
+      margin-top: 12px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .rules b {
+      color: #344054;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .summary {
+        position: static;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .app {
+        width: min(100% - 20px, 1180px);
+        padding-top: 18px;
+      }
+
+      header {
+        display: block;
+      }
+
+      header button {
+        width: 100%;
+        margin-top: 14px;
+      }
+
+      .product-header {
+        display: none;
+      }
+
+      .product-row {
+        grid-template-columns: minmax(0, 1fr) 108px;
+        grid-template-areas:
+          "product qty"
+          "discount total";
+        gap: 10px 12px;
+        padding: 14px;
+      }
+
+      .product-main {
+        grid-area: product;
+      }
+
+      .mobile-price {
+        display: block;
+      }
+
+      .unit-price {
+        display: none;
+      }
+
+      .qty-wrap {
+        grid-area: qty;
+      }
+
+      .line-discount {
+        grid-area: discount;
+      }
+
+      .line-total {
+        grid-area: total;
+        justify-self: end;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div>
+        <h1>客服批发总价计算器</h1>
+        <p class="hint">所有款式和价格都在下面，使用时只填数量。填入数量后自动按该款式折扣计算，最后固定加 11 元。</p>
+      </div>
+      <button class="secondary" type="button" id="clearBtn">清空数量</button>
+    </header>
+
+    <section class="layout">
+      <div class="panel products" aria-label="批发订单明细">
+        <div class="product-header" aria-hidden="true">
+          <span>款式</span>
+          <span>单价</span>
+          <span>数量</span>
+          <span>折扣</span>
+          <span>小计</span>
+        </div>
+
+        <div class="product-row" data-product="52纯白" data-price="7.8" data-discount="0.6">
+          <div class="product-main"><span class="product-name">52纯白</span><span class="mobile-price">单价 ¥7.80</span></div>
+          <span class="unit-price">¥7.80</span>
+          <div class="qty-wrap"><input class="qty" type="number" min="0" step="1" inputmode="numeric" placeholder="0" aria-label="52纯白数量"></div>
+          <span class="line-discount none">无</span>
+          <strong class="line-total">¥0.00</strong>
+        </div>
+
+        <div class="product-row" data-product="52白色划线" data-price="8.8" data-discount="0.6">
+          <div class="product-main"><span class="product-name">52白色划线</span><span class="mobile-price">单价 ¥8.80</span></div>
+          <span class="unit-price">¥8.80</span>
+          <div class="qty-wrap"><input class="qty" type="number" min="0" step="1" inputmode="numeric" placeholder="0" aria-label="52白色划线数量"></div>
+          <span class="line-discount none">无</span>
+          <strong class="line-total">¥0.00</strong>
+        </div>
+
+        <div class="product-row" data-product="52格子" data-price="9.8" data-discount="0.6">
+          <div class="product-main"><span class="product-name">52格子</span><span class="mobile-price">单价 ¥9.80</span></div>
+          <span class="unit-price">¥9.80</span>
+          <div class="qty-wrap"><input class="qty" type="number" min="0" step="1" inputmode="numeric" placeholder="0" aria-label="52格子数量"></div>
+          <span class="line-discount none">无</span>
+          <strong class="line-total">¥0.00</strong>
+        </div>
+
+        <div class="product-row" data-product="78纯白" data-price="10.8" data-discount="0.6">
+          <div class="product-main"><span class="product-name">78纯白</span><span class="mobile-price">单价 ¥10.80</span></div>
+          <span class="unit-price">¥10.80</span>
+          <div class="qty-wrap"><input class="qty" type="number" min="0" step="1" inputmode="numeric" placeholder="0" aria-label="78纯白数量"></div>
+          <span class="line-discount none">无</span>
+          <strong class="line-total">¥0.00</strong>
+        </div>
+
+        <div class="product-row" data-product="78白色划线" data-price="13.8" data-discount="0.6">
+          <div class="product-main"><span class="product-name">78白色划线</span><span class="mobile-price">单价 ¥13.80</span></div>
+          <span class="unit-price">¥13.80</span>
+          <div class="qty-wrap"><input class="qty" type="number" min="0" step="1" inputmode="numeric" placeholder="0" aria-label="78白色划线数量"></div>
+          <span class="line-discount none">无</span>
+          <strong class="line-total">¥0.00</strong>
+        </div>
+
+        <div class="product-row" data-product="78彩色" data-price="15.3" data-discount="0.6">
+          <div class="product-main"><span class="product-name">78彩色</span><span class="mobile-price">单价 ¥15.30</span></div>
+          <span class="unit-price">¥15.30</span>
+          <div class="qty-wrap"><input class="qty" type="number" min="0" step="1" inputmode="numeric" placeholder="0" aria-label="78彩色数量"></div>
+          <span class="line-discount none">无</span>
+          <strong class="line-total">¥0.00</strong>
+        </div>
+
+        <div class="product-row" data-product="104纯白" data-price="16.8" data-discount="0.6">
+          <div class="product-main"><span class="product-name">104纯白</span><span class="mobile-price">单价 ¥16.80</span></div>
+          <span class="unit-price">¥16.80</span>
+          <div class="qty-wrap"><input class="qty" type="number" min="0" step="1" inputmode="numeric" placeholder="0" aria-label="104纯白数量"></div>
+          <span class="line-discount none">无</span>
+          <strong class="line-total">¥0.00</strong>
+        </div>
+
+        <div class="product-row" data-product="104白色划线" data-price="17.3" data-discount="0.6">
+          <div class="product-main"><span class="product-name">104白色划线</span><span class="mobile-price">单价 ¥17.30</span></div>
+          <span class="unit-price">¥17.30</span>
+          <div class="qty-wrap"><input class="qty" type="number" min="0" step="1" inputmode="numeric" placeholder="0" aria-label="104白色划线数量"></div>
+          <span class="line-discount none">无</span>
+          <strong class="line-total">¥0.00</strong>
+        </div>
+
+        <div class="product-row" data-product="104蓝色" data-price="19.8" data-discount="0.6">
+          <div class="product-main"><span class="product-name">104蓝色</span><span class="mobile-price">单价 ¥19.80</span></div>
+          <span class="unit-price">¥19.80</span>
+          <div class="qty-wrap"><input class="qty" type="number" min="0" step="1" inputmode="numeric" placeholder="0" aria-label="104蓝色数量"></div>
+          <span class="line-discount none">无</span>
+          <strong class="line-total">¥0.00</strong>
+        </div>
+
+        <div class="product-row" data-product="104粉色" data-price="19.8" data-discount="0.6">
+          <div class="product-main"><span class="product-name">104粉色</span><span class="mobile-price">单价 ¥19.80</span></div>
+          <span class="unit-price">¥19.80</span>
+          <div class="qty-wrap"><input class="qty" type="number" min="0" step="1" inputmode="numeric" placeholder="0" aria-label="104粉色数量"></div>
+          <span class="line-discount none">无</span>
+          <strong class="line-total">¥0.00</strong>
+        </div>
+
+        <div class="product-row" data-product="52彩色" data-price="9.8" data-discount="0.8">
+          <div class="product-main"><span class="product-name">52彩色</span><span class="mobile-price">单价 ¥9.80</span></div>
+          <span class="unit-price">¥9.80</span>
+          <div class="qty-wrap"><input class="qty" type="number" min="0" step="1" inputmode="numeric" placeholder="0" aria-label="52彩色数量"></div>
+          <span class="line-discount none">无</span>
+          <strong class="line-total">¥0.00</strong>
+        </div>
+
+        <div class="product-row" data-product="104紫色" data-price="22.8" data-discount="0.8">
+          <div class="product-main"><span class="product-name">104紫色</span><span class="mobile-price">单价 ¥22.80</span></div>
+          <span class="unit-price">¥22.80</span>
+          <div class="qty-wrap"><input class="qty" type="number" min="0" step="1" inputmode="numeric" placeholder="0" aria-label="104紫色数量"></div>
+          <span class="line-discount none">无</span>
+          <strong class="line-total">¥0.00</strong>
+        </div>
+      </div>
+
+      <aside class="panel summary" aria-label="总价">
+        <h2>总价</h2>
+        <div class="summary-row">
+          <span>商品折后合计</span>
+          <strong id="itemsTotal">¥0.00</strong>
+        </div>
+        <div class="summary-row">
+          <span>优惠券加价</span>
+          <strong id="couponExtra">¥11.00</strong>
+        </div>
+        <div class="grand">
+          <span>应报总价</span>
+          <strong id="grandTotal">¥11.00</strong>
+        </div>
+        <div class="copy-row">
+          <button class="primary" type="button" id="copyBtn">复制总价</button>
+        </div>
+        <div class="rules">
+          <b>规则：</b>填入数量后直接按折扣计算。52格子、78系列等指定款式 6 折；52彩色、104紫色 8 折。包邮，不算运费。
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const stateKey = "wholesale-calculator-v4";
+    const couponExtra = 11;
+    const rows = Array.from(document.querySelectorAll(".product-row"));
+    const clearBtn = document.querySelector("#clearBtn");
+    const copyBtn = document.querySelector("#copyBtn");
+    const itemsTotalEl = document.querySelector("#itemsTotal");
+    const couponExtraEl = document.querySelector("#couponExtra");
+    const grandTotalEl = document.querySelector("#grandTotal");
+
+    const money = new Intl.NumberFormat("zh-CN", {
+      style: "currency",
+      currency: "CNY",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+
+    function getQty(row) {
+      const value = Number(row.querySelector(".qty").value);
+      return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
+    }
+
+    function formatDiscount(rate, active) {
+      if (!active) return "未填";
+      return `${Math.round(rate * 10)}折`;
+    }
+
+    function calculateRow(row) {
+      const price = Number(row.dataset.price);
+      const discount = Number(row.dataset.discount);
+      const qty = getQty(row);
+      const discountActive = qty > 0;
+      const rate = discount;
+      return {
+        qty,
+        discount,
+        discountActive,
+        subtotal: price * qty * rate
+      };
+    }
+
+    function readSavedQuantities() {
+      try {
+        const raw = localStorage.getItem(stateKey);
+        if (!raw) return {};
+        const saved = JSON.parse(raw);
+        return saved.quantities || {};
+      } catch {
+        return {};
+      }
+    }
+
+    function saveQuantities() {
+      try {
+        const quantities = Object.fromEntries(rows.map((row) => [
+          row.dataset.product,
+          row.querySelector(".qty").value
+        ]));
+        localStorage.setItem(stateKey, JSON.stringify({ quantities }));
+      } catch {
+        // Local files may not always be allowed to use localStorage.
+      }
+    }
+
+    function updateTotals() {
+      let itemsTotal = 0;
+
+      rows.forEach((row) => {
+        const result = calculateRow(row);
+        const discountEl = row.querySelector(".line-discount");
+        discountEl.textContent = formatDiscount(result.discount, result.discountActive);
+        discountEl.classList.toggle("none", !result.discountActive);
+        row.querySelector(".line-total").textContent = money.format(result.subtotal);
+        itemsTotal += result.subtotal;
+      });
+
+      itemsTotalEl.textContent = money.format(itemsTotal);
+      couponExtraEl.textContent = money.format(couponExtra);
+      grandTotalEl.textContent = money.format(itemsTotal + couponExtra);
+      saveQuantities();
+    }
+
+    function setCopyFeedback() {
+      const oldText = copyBtn.textContent;
+      copyBtn.textContent = "已复制";
+      setTimeout(() => {
+        copyBtn.textContent = oldText;
+      }, 1000);
+    }
+
+    function fallbackCopy(text) {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      document.body.append(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      textarea.remove();
+      setCopyFeedback();
+    }
+
+    function copyTotal() {
+      const text = `总价：${grandTotalEl.textContent.replace(/\s/g, "")}`;
+      if (!navigator.clipboard) {
+        fallbackCopy(text);
+        return;
+      }
+
+      navigator.clipboard.writeText(text).then(setCopyFeedback).catch(() => {
+        fallbackCopy(text);
+      });
+    }
+
+    function loadSavedQuantities() {
+      const quantities = readSavedQuantities();
+      rows.forEach((row) => {
+        row.querySelector(".qty").value = quantities[row.dataset.product] || "";
+      });
+    }
+
+    rows.forEach((row) => {
+      row.querySelector(".qty").addEventListener("input", updateTotals);
+    });
+
+    clearBtn.addEventListener("click", () => {
+      rows.forEach((row) => {
+        row.querySelector(".qty").value = "";
+      });
+      updateTotals();
+    });
+
+    copyBtn.addEventListener("click", copyTotal);
+    loadSavedQuantities();
+    updateTotals();
+  </script>
+</body>
+</html>
